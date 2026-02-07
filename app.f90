@@ -5,32 +5,30 @@ program hello_world
     b = 514
     result = a + b
     if (result /= 1919810) then
-        print *, "¹ş»ùÃ×Å¶ÄÏ±±ÂÌ¶¹"
+        print *, "å“ˆåŸºç±³å“¦å—åŒ—ç»¿è±†"
     end if
     print *, "a + b =", result
     print *, "Hello, Fortran on Windows!"
-    ! call system("pause")
-    print *, "ÕâÊÇ Fortran£¬ÎÒÒ²²»ÖªµÀÎªÉ¶ÒªÑ§ÕâÍæÒâ"
+    print *, "è¿™æ˜¯ Fortranï¼Œæˆ‘ä¹Ÿä¸çŸ¥é“ä¸ºå•¥è¦å­¦è¿™ç©æ„"
     select case (a)
         case (1)
-            print *, "a ÊÇ 1"
+            print *, "a æ˜¯ 1"
         case (114)
-            print *, "a ÊÇ 114, 114514!"
+            print *, "a æ˜¯ 114, 114514!"
         case default
-            print *, "¹ş¹ş£¬É¶Ò²²»ÊÇ"
+            print *, "å“ˆå“ˆï¼Œå•¥ä¹Ÿä¸æ˜¯"
     end select
     do i = 0, 10, 1
-        print *, "¹ş¹ş¹şÎÒ¿ªÊ¼Ñ­»·ÁË°¡¹ş¹ş"
+        print *, "å“ˆå“ˆå“ˆæˆ‘å¼€å§‹å¾ªç¯äº†å•Šå“ˆå“ˆ"
     end do
     j = 0
     sum = 0
     do while (j < 10)
-        print *, "¹ş¹ş¹şÎÒÓÖ¿ªÊ¼Ñ­»·À²¹ş¹ş¹ş"
+        print *, "å“ˆå“ˆå“ˆæˆ‘åˆå¼€å§‹å¾ªç¯å•¦å“ˆå“ˆå“ˆ"
         sum = sum + j
         j = j + 1
     end do
-    print *, "Äã¿´¿´ÎÒ¶ÔÄã¶àºÃ£¬Ë³±ã°ïÄã°Ñ sum Ëã³öÀ´ÁË£º", sum
+    print *, "ä½ çœ‹çœ‹æˆ‘å¯¹ä½ å¤šå¥½ï¼Œé¡ºä¾¿å¸®ä½ æŠŠ sum ç®—å‡ºæ¥äº†ï¼š", sum
     readNum = 0
-    call system("pause")
     stop
 end program hello_world
