@@ -99,6 +99,10 @@ jobs:
       id: check_flang
       run: |
         if command -v flang-new &> /dev/null; then
+          echo "flang-new found!"
+          echo "flang-available=true" >> $GITHUB_OUTPUT
+          flang-new --version
+        elif command -v flang &> /dev/null; then
           echo "flang found!"
           echo "flang-available=true" >> $GITHUB_OUTPUT
           flang --version
