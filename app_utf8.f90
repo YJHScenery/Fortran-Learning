@@ -21,7 +21,7 @@ program hello_world
 
     print *, "Hello, Fortran on Windows!"
 
-    print *, "这是 Fortran，我也不知道为啥要学这玩意"
+    print *, "这是 Fortran"
 
     select case (a)
         case (1)
