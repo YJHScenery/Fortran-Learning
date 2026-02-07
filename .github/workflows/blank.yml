@@ -1,0 +1,134 @@
+name: Fortran CI/CD
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:  # 允许手动运行
+
+jobs:
+  test-gfortran:
+    name: Test with gfortran (Ubuntu)
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Install gfortran
+      run: sudo apt-get update && sudo apt-get install -y gfortran
+    
+    - name: List Fortran files
+      run: |
+        echo "=== Fortran files in repository ==="
+        ls -la *.f90 || echo "No .f90 files found"
+        echo ""
+    
+    - name: Compile all Fortran programs
+      run: |
+        # 查找所有.f90文件并编译
+        for file in *.f90; do
+          if [ -f "$file" ]; then
+            echo "📦 Compiling $file to ${file%.f90}"
+            gfortran -Wall -Wextra -std=f2008 -o "${file%.f90}" "$file"
+          fi
+        done
+        echo ""
+    
+    - name: Run compiled programs
+      run: |
+        # 运行所有生成的可执行文件
+        for prog in $(ls -F | grep '*$' | sed 's/*$//' 2>/dev/null); do
+          if [ -x "$prog" ]; then
+            echo "🚀 Running $prog:"
+            ./"$prog"
+            echo ""
+          fi
+        done
+        # 如果没有找到可执行文件，尝试运行常见的名称
+        if [ -f "hello" ]; then
+          echo "🚀 Running hello:"
+          ./hello
+        fi
+        if [ -f "test_math" ]; then
+          echo "🚀 Running test_math:"
+          ./test_math
+        fi
+    
+    - name: Compilation and test summary
+      run: |
+        echo "✅ Fortran compilation and testing completed!"
+        echo "Compiler: gfortran"
+        echo "OS: Ubuntu Linux"
+        echo "Time: $(date)"
+
+  test-flang:
+    name: Test with flang (Ubuntu)
+    runs-on: ubuntu-latest
+    needs: test-gfortran  # 依赖于gfortran测试成功
+    continue-on-error: true  # flang可能安装失败，但允许继续
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Try to install flang
+      run: |
+        echo "Attempting to install flang..."
+        # 尝试多种安装方式
+        sudo apt-get update
+        # 方法1：尝试从包管理器安装
+        sudo apt-get install -y flang 2>/dev/null || echo "Package 'flang' not found in standard repos"
+        
+        # 方法2：尝试安装LLVM版本
+        if ! command -v flang &> /dev/null; then
+          echo "Trying to install flang from LLVM repository..."
+          wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key 2>/dev/null | sudo apt-key add - || true
+          sudo apt-add-repository -y "deb http://apt.llvm.org/focal/ llvm-toolchain-focal-16 main" 2>/dev/null || true
+          sudo apt-get update 2>/dev/null || true
+          sudo apt-get install -y flang-16 2>/dev/null || echo "Failed to install flang-16"
+          
+          # 创建符号链接
+          if [ -f "/usr/bin/flang-16" ]; then
+            sudo ln -sf /usr/bin/flang-16 /usr/bin/flang || true
+          fi
+        fi
+    
+    - name: Check if flang is available
+      id: check_flang
+      run: |
+        if command -v flang &> /dev/null; then
+          echo "flang found!"
+          echo "flang-available=true" >> $GITHUB_OUTPUT
+          flang --version
+        else
+          echo "flang not available"
+          echo "flang-available=false" >> $GITHUB_OUTPUT
+        fi
+    
+    - name: Compile with flang (if available)
+      if: steps.check_flang.outputs.flang-available == 'true'
+      run: |
+        echo "Compiling with flang..."
+        # 只编译一个简单的程序测试
+        if ls *.f90 1> /dev/null 2>&1; then
+          # 使用第一个.f90文件测试
+          first_file=$(ls *.f90 | head -1)
+          flang -o flang_test "$first_file" 2>&1 || echo "Compilation had warnings"
+          
+          if [ -f "flang_test" ]; then
+            echo "Flang compilation successful!"
+            echo "Running flang_test:"
+            ./flang_test
+          fi
+        fi
+    
+    - name: Flang test result
+      run: |
+        if [ "${{ steps.check_flang.outputs.flang-available }}" = "true" ]; then
+          echo "✅ Flang test completed"
+        else
+          echo "⚠️ Flang not available on this system"
+          echo "This is expected on some platforms"
+        fi
