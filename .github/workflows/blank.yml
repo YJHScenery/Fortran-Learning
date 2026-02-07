@@ -98,7 +98,7 @@ jobs:
     - name: Check if flang is available
       id: check_flang
       run: |
-        if command -v flang &> /dev/null; then
+        if command -v flang-new &> /dev/null; then
           echo "flang found!"
           echo "flang-available=true" >> $GITHUB_OUTPUT
           flang --version
@@ -115,7 +115,7 @@ jobs:
         if ls *.f90 1> /dev/null 2>&1; then
           # 使用第一个.f90文件测试
           first_file=$(ls *.f90 | head -1)
-          flang -o flang_test "$first_file" 2>&1 || echo "Compilation had warnings"
+          flang-new -o flang_test "$first_file" 2>&1 || echo "Compilation had warnings"
           
           if [ -f "flang_test" ]; then
             echo "Flang compilation successful!"
