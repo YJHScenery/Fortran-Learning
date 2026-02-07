@@ -21,7 +21,6 @@ program hello_world
 
     print *, "Hello, Fortran on Windows!"
 
-    ! call system("pause")
     print *, "这是 Fortran，我也不知道为啥要学这玩意"
 
     select case (a)
@@ -47,8 +46,6 @@ program hello_world
     end do
 
     print *, "你看看我对你多好，顺便帮你把 sum 算出来了：", sum
-
-    call system("pause")
 
     stop
 
