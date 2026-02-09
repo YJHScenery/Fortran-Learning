@@ -16,7 +16,7 @@ jobs:
           - compiler: gfortran
             install-cmd: sudo apt-get update && sudo apt-get install -y gfortran
             compile-flags: -Wall -Wextra -std=f2008
-          - compiler: flang
+          - compiler: flang-new
             install-cmd: |
               sudo apt-get update
               sudo apt-get install -y clang flang
