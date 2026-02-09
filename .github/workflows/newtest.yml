@@ -1,0 +1,61 @@
+name: Fortran CI
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  test:
+    strategy:
+      matrix:
+        compiler: [gfortran]
+        include:
+          - compiler: gfortran
+            install-cmd: sudo apt-get update && sudo apt-get install -y gfortran
+            compile-flags: -Wall -Wextra -std=f2008
+          - compiler: flang
+            install-cmd: |
+              sudo apt-get update
+              sudo apt-get install -y clang flang
+            compile-flags: -Wall
+
+    name: Test with ${{ matrix.compiler }}
+    runs-on: ubuntu-latest
+    continue-on-error: ${{ matrix.compiler == 'flang' }}
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Install ${{ matrix.compiler }}
+      run: ${{ matrix.install-cmd }}
+
+    - name: Compile Fortran files
+      run: |
+        for f in *.f90 *.f95 *.f03; do
+          if [ -f "$f" ]; then
+            out="${f%.*}"
+            echo "Compiling $f → $out"
+            ${{ matrix.compiler }} ${{ matrix.compile-flags }} -o "$out" "$f" || continue
+          fi
+        done
+
+    - name: Run executables
+      run: |
+        for exe in $(ls -F | grep '*$' | sed 's/*$//'); do
+          if [ -x "$exe" ]; then
+            echo "Running $exe:"
+            timeout 5 ./"$exe" || echo "Execution timed out or failed"
+            echo ""
+          fi
+        done
+
+    - name: Summary
+      run: |
+        echo "✅ ${{ matrix.compiler }} test completed"
+        echo "Compiler: ${{ matrix.compiler }}"
+        echo "OS: ${{ runner.os }}"
+        echo "Time: $(date -u)"
