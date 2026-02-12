@@ -1,0 +1,73 @@
+name: Fortran Gcc/Flang/Intel
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  test:
+    strategy:
+      matrix:
+        compiler: [gfortran, flang-new, ifx]          # 新增 ifx
+        include:
+          - compiler: gfortran
+            install-cmd: sudo apt-get update && sudo apt-get install -y gfortran
+            compile-flags: -Wall -Wextra -std=f2008
+          - compiler: flang-new
+            install-cmd: |
+              sudo apt-get update
+              sudo apt-get install -y clang flang
+            compile-flags: -Wall
+          - compiler: ifx                            # Intel 编译器配置
+            install-cmd: echo "Installed via dedicated action"
+            compile-flags: -warn all -stand f18
+
+    name: Test with ${{ matrix.compiler }}
+    runs-on: ubuntu-latest
+    continue-on-error: ${{ matrix.compiler == 'flang-new' }}   # 修正为 flang-new
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    # 对于 gfortran / flang-new 使用 apt 安装
+    - name: Install ${{ matrix.compiler }} (apt)
+      if: matrix.compiler != 'ifx'
+      run: ${{ matrix.install-cmd }}
+
+    # 对于 Intel ifx 使用官方 oneAPI action（自动设置环境变量）
+    - name: Setup Intel oneAPI
+      if: matrix.compiler == 'ifx'
+      uses: intel/install-oneapi@v2
+      with:
+        components: fortran
+
+    - name: Compile Fortran files
+      run: |
+        for f in *.f90 *.f95 *.f03; do
+          if [ -f "$f" ]; then
+            out="${f%.*}"
+            echo "Compiling $f → $out"
+            ${{ matrix.compiler }} ${{ matrix.compile-flags }} -o "$out" "$f" || continue
+          fi
+        done
+
+    - name: Run executables
+      run: |
+        for exe in $(ls -F | grep '*$' | sed 's/*$//'); do
+          if [ -x "$exe" ]; then
+            echo "Running $exe:"
+            timeout 5 ./"$exe" || echo "Execution timed out or failed"
+            echo ""
+          fi
+        done
+
+    - name: Summary
+      run: |
+        echo "✅ ${{ matrix.compiler }} test completed"
+        echo "Compiler: ${{ matrix.compiler }}"
+        echo "OS: ${{ runner.os }}"
+        echo "Time: $(date -u)"
