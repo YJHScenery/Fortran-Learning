@@ -55,6 +55,7 @@ jobs:
         echo "CC=icx" >> $GITHUB_ENV
         echo "CXX=icpx" >> $GITHUB_ENV
         echo "FC=ifx" >> $GITHUB_ENV
+        echo "LD_LIBRARY_PATH=/opt/intel/oneapi/compiler/latest/linux/compiler/lib/intel64:/opt/intel/oneapi/compiler/latest/linux/lib:\$LD_LIBRARY_PATH" >> $GITHUB_ENV
 
     - name: Compile Fortran files
       run: |
@@ -71,6 +72,9 @@ jobs:
 
     - name: Run executables
       run: |
+        if [ "${{ matrix.compiler }}" = "ifx" ]; then
+          source /opt/intel/oneapi/setvars.sh intel64
+        fi
         for exe in $(ls -F | grep '*$' | sed 's/*$//'); do
           if [ -x "$exe" ]; then
             echo "Running $exe:"
