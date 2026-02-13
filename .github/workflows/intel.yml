@@ -1,4 +1,4 @@
-name: Fortran CI
+name: Fortran CI_intel_new
 
 on:
   push: { branches: [ main, master ] }
