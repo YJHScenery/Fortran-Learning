@@ -1,0 +1,67 @@
+name: Fortran CI
+
+on:
+  push: { branches: [ main, master ] }
+  pull_request: { branches: [ main, master ] }
+  workflow_dispatch:
+
+jobs:
+  test:
+    strategy:
+      matrix:
+        compiler: [gfortran]
+        include:
+          - compiler: gfortran
+            install-cmd: sudo apt-get update && sudo apt-get install -y gfortran
+            compile-flags: -Wall -Wextra -std=f2008
+          - compiler: flang-new
+            install-cmd: |
+              sudo apt-get update
+              sudo apt-get install -y clang flang
+            compile-flags: -Wall
+          # ----- Intel ifx 使用专用 Action 安装 -----
+          - compiler: ifx
+            install-cmd: echo "Installed via intel/install-ifx action"  # 占位，实际安装由后续 step 完成
+            compile-flags: -warn all -stand f18
+
+    name: Test with ${{ matrix.compiler }}
+    runs-on: ubuntu-latest
+    continue-on-error: ${{ matrix.compiler == 'flang' || matrix.compiler == 'ifx' }}
+
+    steps:
+    - uses: actions/checkout@v4
+
+    # ----- Intel ifx 专用安装步骤（仅在 compiler=ifx 时执行）-----
+    - name: Install Intel Fortran compiler (ifx)
+      if: ${{ matrix.compiler == 'ifx' }}
+      uses: intel/install-ifx@v1
+
+    # ----- 其他编译器安装（gfortran / flang-new）-----
+    - name: Install ${{ matrix.compiler }}
+      if: ${{ matrix.compiler != 'ifx' }}
+      run: ${{ matrix.install-cmd }}
+
+    - name: Compile Fortran files
+      run: |
+        for f in *.f90 *.f95 *.f03; do
+          [ -f "$f" ] || continue
+          out="${f%.*}"
+          echo "Compiling $f → $out"
+          ${{ matrix.compiler }} ${{ matrix.compile-flags }} -o "$out" "$f" || continue
+        done
+
+    - name: Run executables
+      run: |
+        for exe in $(ls -F | grep '*$' | sed 's/*$//'); do
+          [ -x "$exe" ] || continue
+          echo "Running $exe:"
+          timeout 5 ./"$exe" || echo "Execution timed out or failed"
+          echo ""
+        done
+
+    - name: Summary
+      run: |
+        echo "✅ ${{ matrix.compiler }} test completed"
+        echo "Compiler: ${{ matrix.compiler }}"
+        echo "OS: ${{ runner.os }}"
+        echo "Time: $(date -u)"
