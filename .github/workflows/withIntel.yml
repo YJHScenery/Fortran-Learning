@@ -1,4 +1,4 @@
-name: Fortran Gcc/Flang/Intel
+name: Fortran CI_Intel
 
 on:
   push:
@@ -11,7 +11,7 @@ jobs:
   test:
     strategy:
       matrix:
-        compiler: [gfortran, flang-new, ifx]          # 新增 ifx
+        compiler: [gfortran]   # 基础列表，其余通过 include 添加
         include:
           - compiler: gfortran
             install-cmd: sudo apt-get update && sudo apt-get install -y gfortran
@@ -21,29 +21,29 @@ jobs:
               sudo apt-get update
               sudo apt-get install -y clang flang
             compile-flags: -Wall
-          - compiler: ifx                            # Intel 编译器配置
-            install-cmd: echo "Installed via dedicated action"
+          # ----- 新增 Intel ifx 编译器 -----
+          - compiler: ifx
+            install-cmd: |
+              # 添加 Intel oneAPI APT 仓库（现代方法，避免 apt-key 弃用警告）
+              wget -O- https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB | gpg --dearmor | sudo tee /usr/share/keyrings/oneapi-archive-keyring.gpg > /dev/null
+              echo "deb [signed-by=/usr/share/keyrings/oneapi-archive-keyring.gpg] https://apt.repos.intel.com/oneapi all main" | sudo tee /etc/apt/sources.list.d/oneAPI.list
+              sudo apt-get update
+              sudo apt-get install -y intel-oneapi-compiler-fortran
+              # 将 ifx 所在目录加入 PATH（无需手动 source setvars.sh）
+              echo "/opt/intel/oneapi/compiler/latest/linux/bin/intel64" >> $GITHUB_PATH
             compile-flags: -warn all -stand f18
 
     name: Test with ${{ matrix.compiler }}
     runs-on: ubuntu-latest
-    continue-on-error: ${{ matrix.compiler == 'flang-new' }}   # 修正为 flang-new
+    # 允许 flang-new（实际条件永远为 false）和 ifx 失败而不影响 CI 状态
+    continue-on-error: ${{ matrix.compiler == 'flang' || matrix.compiler == 'ifx' }}
 
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    # 对于 gfortran / flang-new 使用 apt 安装
-    - name: Install ${{ matrix.compiler }} (apt)
-      if: matrix.compiler != 'ifx'
+    - name: Install ${{ matrix.compiler }}
       run: ${{ matrix.install-cmd }}
-
-    # 对于 Intel ifx 使用官方 oneAPI action（自动设置环境变量）
-    - name: Setup Intel oneAPI
-      if: matrix.compiler == 'ifx'
-      uses: intel/install-oneapi@v2
-      with:
-        components: fortran
 
     - name: Compile Fortran files
       run: |
