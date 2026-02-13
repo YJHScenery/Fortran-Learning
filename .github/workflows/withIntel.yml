@@ -29,8 +29,10 @@ jobs:
               echo "deb [signed-by=/usr/share/keyrings/oneapi-archive-keyring.gpg] https://apt.repos.intel.com/oneapi all main" | sudo tee /etc/apt/sources.list.d/oneAPI.list
               sudo apt-get update
               sudo apt-get install -y intel-oneapi-compiler-fortran
-              # 将 ifx 所在目录加入 PATH（无需手动 source setvars.sh）
-              echo "/opt/intel/oneapi/compiler/latest/linux/bin/intel64" >> $GITHUB_PATH
+              # 设置 Intel oneAPI 环境变量
+              source /opt/intel/oneapi/setvars.sh intel64
+              # 将 ifx 所在目录加入 PATH
+              echo "/opt/intel/oneapi/compiler/latest/linux/bin" >> $GITHUB_PATH
             compile-flags: -warn all -stand f18
 
     name: Test with ${{ matrix.compiler }}
@@ -45,8 +47,20 @@ jobs:
     - name: Install ${{ matrix.compiler }}
       run: ${{ matrix.install-cmd }}
 
+    - name: Setup Intel oneAPI environment
+      if: matrix.compiler == 'ifx'
+      run: |
+        source /opt/intel/oneapi/setvars.sh intel64
+        echo "INTEL_ONEAPI_ROOT=/opt/intel/oneapi" >> $GITHUB_ENV
+        echo "CC=icx" >> $GITHUB_ENV
+        echo "CXX=icpx" >> $GITHUB_ENV
+        echo "FC=ifx" >> $GITHUB_ENV
+
     - name: Compile Fortran files
       run: |
+        if [ "${{ matrix.compiler }}" = "ifx" ]; then
+          source /opt/intel/oneapi/setvars.sh intel64
+        fi
         for f in *.f90 *.f95 *.f03; do
           if [ -f "$f" ]; then
             out="${f%.*}"
